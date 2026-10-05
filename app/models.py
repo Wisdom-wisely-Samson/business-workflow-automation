@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, Float, String, DateTime
-from datetime import datetime
+from datetime import datetime, timezone
 from .database import Base
 
 class Product(Base):
@@ -26,7 +26,7 @@ class Order(Base):
 
     created_at = Column(
         DateTime,
-        default=datetime.now(datetime.UTC)
+        default=datetime.now(timezone.utc)
     )
 
 
@@ -45,7 +45,7 @@ class Sale(Base):
 
     created_at = Column(
         DateTime,
-        default=datetime.now(datetime.UTC)
+        default=datetime.now(timezone.utc)
     )
 
 
@@ -60,5 +60,5 @@ class AuditLog(Base):
 
     created_at = Column(
         DateTime,
-        default=datetime.now(datetime.UTC)
+        default=datetime.now(timezone.utc)
     )

@@ -1,36 +1,45 @@
 from sqlalchemy.orm import Session
+
 from .models import Order, Product, Sale, AuditLog
 
+
 def create_order_workflow(
-        db: Session, 
-        customer_name: str,
-        product_id: int,
-        quantity: float,
-        amount_paid: float
+    db: Session,
+    customer_name: str,
+    product_id: int,
+    quantity: float,
+    amount_paid: float
 ):
 
+    # 1. Find product
     product = db.query(Product).filter(
-        Product.id == product_id).first(
-    )
+        Product.id == product_id
+    ).first()
+
     if not product:
-        return{
+        return {
             "success": False,
             "message": "Product not found."
         }
 
+    # 2. Validate quantity
     if quantity <= 0:
-        return{
+        return {
             "success": False,
             "message": "Quantity must be greater than zero."
         }
 
+    # 3. Calculate total
+    total_amount = quantity * product.price_per_kg
+
+    # 4. Check stock FIRST
     if quantity > product.stock:
 
         order = Order(
             customer_name=customer_name,
             product_id=product_id,
             quantity=quantity,
-            total_amount=quantity * product.price_per_kg,
+            total_amount=total_amount,
             amount_paid=amount_paid,
             status="WAITING_FOR_STOCK"
         )
@@ -40,10 +49,10 @@ def create_order_workflow(
         db.refresh(order)
 
         audit = AuditLog(
-            order_id = order.id,
-            action = "WAITING_FOR_STOCK",
-            description = (
-                 f"Requested {quantity}kg but only "
+            order_id=order.id,
+            action="WAITING_FOR_STOCK",
+            description=(
+                f"Requested {quantity}kg but only "
                 f"{product.stock}kg is available."
             )
         )
@@ -60,9 +69,51 @@ def create_order_workflow(
             ),
             "order_id": order.id
         }
-    order.status = "PROCESSING"
+
+    # 5. Create order
+    order = Order(
+        customer_name=customer_name,
+        product_id=product_id,
+        quantity=quantity,
+        total_amount=total_amount,
+        amount_paid=amount_paid
+    )
 
     db.add(order)
+    db.flush()
+
+    # 6. Check payment
+    if amount_paid < total_amount:
+
+        order.status = "PENDING_PAYMENT"
+
+        audit = AuditLog(
+            order_id=order.id,
+            action="PENDING_PAYMENT",
+            description=(
+                f"Payment pending. Required: "
+                f"{total_amount}, received: {amount_paid}."
+            )
+        )
+
+        db.add(audit)
+        db.commit()
+
+        return {
+            "success": False,
+            "status": "PENDING_PAYMENT",
+            "message": (
+                "Payment is required before processing "
+                "the order."
+            ),
+            "amount_required": total_amount,
+            "amount_paid": amount_paid,
+            "balance": total_amount - amount_paid,
+            "order_id": order.id
+        }
+
+    # 7. Payment confirmed
+    order.status = "PROCESSING"
 
     # 8. Reduce stock
     product.stock -= quantity
@@ -72,7 +123,7 @@ def create_order_workflow(
         order_id=order.id,
         product_id=product.id,
         quantity=quantity,
-        amount=amount_paid,
+        amount=total_amount,
         status="COMPLETED"
     )
 
@@ -90,9 +141,10 @@ def create_order_workflow(
 
     db.add(audit)
 
-    # 11. Complete transaction
+    # 11. Complete order
     order.status = "COMPLETED"
 
+    # 12. Save everything
     db.commit()
 
     return {
