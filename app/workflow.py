@@ -153,3 +153,49 @@ def create_order_workflow(
         "message": "Order processed successfully.",
         "order_id": order.id
     }
+def resume_waiting_orders(
+        product_id: int,
+        db: Session
+):
+    waiting_orders = db.query(Order).filter(Order.product_id == product_id, Order.status== "WAITING_FOR_STOCK").all()
+    processed_orders = []
+
+    for order in waiting_orders:
+
+        product = db.query(Product).filter(Product.id == product_id).first()
+        if not product:
+            continue
+
+        if order.quantity > product.stock:
+            continue
+
+        product.stock -= order.quantity
+
+        sale = Sale(
+            order_id=order.id,
+            product_id=product.id,
+            quantity=order.quantity,
+            amount=order.total_amount,
+            status="COMPLETED"
+
+        )
+        db.add(sale)
+
+        order.status = "COMPLETED"
+
+        audit= AuditLog(
+            order_id=order.id,
+            action= "ORDER RESUMED AFTER RESTOCK",
+            description=(
+                f"Order resumed after restock. "
+                f"{order.quantity}kg removed from inventory."
+            )
+        )
+
+        db.add(audit)
+
+        processed_orders.append(order.id)
+        db.commit()
+        return processed_orders
+
+
