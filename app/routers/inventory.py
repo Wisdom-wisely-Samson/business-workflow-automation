@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Product
-from app.workflow import resume_waiting_orders
+from app.models.product import Product
+from app.services.restock_service import resume_waiting_orders
 
 router = APIRouter(
     prefix="/inventory",

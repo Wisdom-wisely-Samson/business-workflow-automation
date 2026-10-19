@@ -2,8 +2,11 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Order, Product, Sale, AuditLog
-from ..schemas import PaymentConfirmation
+from app.models.order import Order
+from app.models.product import Product
+from app.models.sale import Sale
+from app.models.audit_log import AuditLog
+from app.schemas.payment import PaymentConfirmation
 
 router = APIRouter(
     prefix="/payments",

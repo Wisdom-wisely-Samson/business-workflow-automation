@@ -6,6 +6,3 @@ class OrderCreate(BaseModel):
     product_id: int
     quantity: float
     amount_paid: float
-
-class PaymentConfirmation(BaseModel):
-    amount_paid: float

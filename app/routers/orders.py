@@ -2,29 +2,24 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Product
+from app.schemas.order import OrderCreate
+from app.services.order_service import create_order_workflow
 
 
 router = APIRouter(
-    prefix="/products",
-    tags=["Products"]
+    prefix="/orders",
+    tags=["Orders"]
 )
 
 @router.post("/")
-def create_product(
-    name: str,
-    stock: float,
-    price_per_kg: float,
-    db: Session = Depends(get_db)   
+def create_order(
+    order: OrderCreate,
+    db: Session = Depends(get_db)
 ):
-    
-
-    product = Product(
-        name=name,
-        stock=stock,
-        price_per_kg=price_per_kg
+    return create_order_workflow(
+        db=db,
+        customer_name=order.customer_name,
+        product_id=order.product_id,
+        quantity=order.quantity,
+        amount_paid=order.amount_paid
     )
-    db.add(product)
-    db.commit()
-    db.refresh(product)
-    return product
