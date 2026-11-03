@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -10,10 +10,10 @@ router = APIRouter(
     tags=["inventory"]
 )
 
-@router.post("{product_id}/reduce")
+@router.post("/{product_id}/reduce")
 def reduce_stock(
     product_id: int,
-    quantity: float,
+    quantity: float = Query(gt=0),
     db: Session = Depends(get_db)
 ):
     product = db.query(Product).filter(Product.id == product_id).first()
@@ -21,12 +21,6 @@ def reduce_stock(
         return {
             "success": False,
             "message": "Product not Found"
-        }
-
-    if quantity < 0:
-        return{
-            "success": False, 
-            "message": "Quantity must be greater than zero(0)."
         }
 
     if quantity > product.stock:
@@ -47,10 +41,10 @@ def reduce_stock(
     }
 
 
-@router.post("/{product}/restock")
+@router.post("/{product_id}/restock")
 def restock_product(
     product_id: int,
-    quantity: float,
+    quantity: float = Query(gt=0),
     db: Session = Depends(get_db)
 ):
     product = db.query(Product).filter(Product.id== product_id).first()
@@ -59,11 +53,6 @@ def restock_product(
         return{
             "success": False,
             "message": "Product not found"
-        }
-    if quantity < 0:
-        return{
-            "success": False,
-            "message": "Quantity must be greater than zero(0)."
         }
     product.stock += quantity
 

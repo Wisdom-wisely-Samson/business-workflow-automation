@@ -31,7 +31,7 @@ def confirm_payment(
             "success": False,
             "message": (
                 f"Order can not receive payment confirmation."
-                f"Current status is {Order.status}"
+                f"Current status is {order.status}"
             )
         }
 
@@ -59,6 +59,7 @@ def confirm_payment(
     # 5. RE-CHECK STOCK
     if order.quantity > product.stock:
 
+        order.amount_paid = payment.amount_paid
         order.status = "WAITING_FOR_STOCK"
 
         audit = AuditLog(

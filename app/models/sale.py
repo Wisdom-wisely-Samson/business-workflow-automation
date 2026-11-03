@@ -17,5 +17,5 @@ class Sale(Base):
 
     created_at = Column(
         DateTime,
-        default=datetime.now(timezone.utc)
+        default=lambda: datetime.now(timezone.utc)
     )
