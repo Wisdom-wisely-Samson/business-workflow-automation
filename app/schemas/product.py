@@ -1,9 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 class ProductCreate(BaseModel):
-    name: str
-    stock: float
-    price_per_kg: float
+    name: str = Field(min_length=1)
+    stock: float = Field(ge=0)
+    price_per_kg: float = Field(gt=0)
 
 class ProductResponse(BaseModel):
     id: int
@@ -11,6 +11,4 @@ class ProductResponse(BaseModel):
     stock: float
     price_per_kg: float
 
-model_config = {
-    "from_attributes": True
-}
+    model_config = ConfigDict(from_attributes=True)
